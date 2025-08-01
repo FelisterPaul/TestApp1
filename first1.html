@@ -1,17 +1,45 @@
-<!-- The <!DOCTYPE html> declaration defines that this document is an HTML5 document-->
-<!DOCYPE html>  The <!DOCTYPE html> declaration defines that this document is an HTML5 document
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<tittle> Page Title: She CODES </tittle>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>She CODES</title> <!-- Fixed the spelling of 'title' tag -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        p {
+            line-height: 1.6;
+            color: #444;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        a:hover {
+            color: #003366;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1> Welcome to My Page </h1>
-    <p>She believed in herself that she can do it. She is a software engineer, she codes and she love it!</p>
+    <h1 class="main-title">Welcome to My Page</h1>
+    <p id="intro-text" class="content">She believed in herself that she can do it. She is a software engineer, she codes and she love it!</p>
+    <p class="content">Here is a link to my linkedIn profile: 
+        <a href="https://www.linkedin.com/in/felister-paul/" target="_blank" rel="noopener noreferrer">Felister Paul</a>
+    </p>
 </body>
-</html>
 <script>
     // This is a simple Javascript code to display an alert
     window.onload = function() {
         alert("Welcome to my page! She codes and she loves it!");
     }
 </script>
+</html>
