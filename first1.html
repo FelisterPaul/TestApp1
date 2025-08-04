@@ -95,9 +95,71 @@
         .edit-btn:hover {
             background-color: #7a3e69;
         }
+
+        .auth-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .login-form {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .login-form input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .login-form button,
+        #authToggle {
+            background: #934e80;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-form button:hover,
+        #authToggle:hover {
+            background: #7a3e69;
+        }
+
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
+    <div class="auth-container">
+        <form id="loginForm" class="login-form hidden">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <div class="auth-status">
+            <span id="userStatus">Guest</span>
+            <button id="authToggle">Login</button>
+        </div>
+    </div>
     <h1 class="main-title">Articles By Barbier Engineer</h1>
     
     <div class="article">
@@ -128,8 +190,55 @@
     <button class="add-article-btn" title="Add New Article">+</button>
 
     <script>
+        const ADMIN_CREDENTIALS = {
+            username: 'Hellena',
+            password: 'admin123'
+        };
+
+        let isAdmin = false;
+        const loginForm = document.getElementById('loginForm');
+        const authToggle = document.getElementById('authToggle');
+        const userStatus = document.getElementById('userStatus');
+
+        // Toggle login form
+        authToggle.addEventListener('click', () => {
+            if (isAdmin) {
+                // Logout
+                isAdmin = false;
+                userStatus.textContent = 'Guest';
+                authToggle.textContent = 'Login';
+                document.querySelector('.add-article-btn').classList.add('hidden');
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.add('hidden'));
+            } else {
+                // Show login form
+                loginForm.classList.toggle('hidden');
+            }
+        });
+
+        // Handle login
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === ADMIN_CREDENTIALS.username && 
+                password === ADMIN_CREDENTIALS.password) {
+                isAdmin = true;
+                userStatus.textContent = 'Admin';
+                authToggle.textContent = 'Logout';
+                loginForm.classList.add('hidden');
+                document.querySelector('.add-article-btn').classList.remove('hidden');
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.remove('hidden'));
+            } else {
+                alert('Invalid credentials!');
+            }
+            loginForm.reset();
+        });
+
+        // Initialize page
         window.onload = function() {
-            alert("Welcome to my page! She codes and she loves it!");
+            document.querySelector('.add-article-btn').classList.add('hidden');
+            document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.add('hidden'));
         }
 
         function createArticle(title, content, date) {
