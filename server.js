@@ -4,6 +4,13 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs').promises;
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// Add these constants
+const ADMIN_USERNAME = 'felister';
+const ADMIN_PASSWORD = 'admin123'; // In production, use hashed password
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +34,24 @@ async function ensureDataDir() {
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access denied' });
+    }
+
+    try {
+        const verified = jwt.verify(token, JWT_SECRET);
+        req.user = verified;
+        next();
+    } catch (error) {
+        res.status(403).json({ error: 'Invalid token' });
+    }
+};
 
 // Root route
 app.get('/', (req, res) => {
@@ -69,7 +94,19 @@ app.get('/api/articles', async (req, res, next) => {
     }
 });
 
-app.post('/api/articles', async (req, res, next) => {
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        // Create and sign JWT token
+        const token = jwt.sign({ username }, JWT_SECRET);
+        res.json({ token });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
+
+app.post('/api/articles', authenticateToken, async (req, res, next) => {
     try {
         const { title, content } = req.body;
         const articles = await readArticles();
@@ -87,7 +124,7 @@ app.post('/api/articles', async (req, res, next) => {
     }
 });
 
-app.put('/api/articles/:id', async (req, res, next) => {
+app.put('/api/articles/:id', authenticateToken, async (req, res, next) => {
     try {
         const { title, content } = req.body;
         const articles = await readArticles();
