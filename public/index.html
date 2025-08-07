@@ -357,9 +357,45 @@
             const content = prompt('Enter article content:');
             if (!content) return;
 
-            const article = createArticle(title, content, new Date());
-            document.querySelector('.main-title').insertAdjacentElement('afterend', article);
+            // Create and display the new article immediately
+            const newArticle = createArticle(title, content, new Date());
+            const container = document.querySelector('.container');
+            const firstArticle = container.querySelector('.article');
+            
+            // Insert the new article at the top
+            if (firstArticle) {
+                container.insertBefore(newArticle, firstArticle);
+            } else {
+                container.appendChild(newArticle);
+            }
+
+            // Add edit functionality to the new article
+            if (isAdmin && newArticle.querySelector('.edit-btn')) {
+                addEditFunctionality(newArticle, newArticle.querySelector('.edit-btn'));
+            }
         });
+
+        // Update createArticle function
+        function createArticle(title, content, date) {
+            const article = document.createElement('div');
+            article.className = 'article';
+            
+            const id = Date.now().toString();
+            article.dataset.id = id;
+            
+            article.innerHTML = `
+                ${isAdmin ? '<button class="edit-btn">Edit</button>' : ''}
+                <h2 class="article-title">${title}</h2>
+                <p class="article-date">${date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}</p>
+                <p class="content">${content}</p>
+            `;
+
+            return article;
+        }
 
         // Fetch articles from backend
         async function fetchArticles() {
