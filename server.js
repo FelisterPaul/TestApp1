@@ -94,15 +94,26 @@ app.get('/api/articles', async (req, res, next) => {
     }
 });
 
+// Update the login route
 app.post('/api/login', async (req, res) => {
+    console.log('Login attempt:', req.body); // Debug log
     const { username, password } = req.body;
 
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Create and sign JWT token
-        const token = jwt.sign({ username }, JWT_SECRET);
-        res.json({ token });
+    // Check credentials
+    if (username === 'felister' && password === 'admin123') {
+        const token = jwt.sign({ username }, process.env.JWT_SECRET);
+        console.log('Login successful'); // Debug log
+        res.json({ 
+            success: true,
+            token,
+            message: 'Login successful'
+        });
     } else {
-        res.status(401).json({ error: 'Invalid credentials' });
+        console.log('Login failed'); // Debug log
+        res.status(401).json({ 
+            success: false,
+            error: 'Invalid credentials'
+        });
     }
 });
 

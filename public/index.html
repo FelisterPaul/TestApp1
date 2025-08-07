@@ -271,25 +271,43 @@
             }
         });
 
-        // Handle login
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
+        // Add this login function
+        async function handleLogin(event) {
+            event.preventDefault();
+            
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            if (username === ADMIN_CREDENTIALS.username && 
-                password === ADMIN_CREDENTIALS.password) {
-                isAdmin = true;
-                userStatus.textContent = 'Admin';
-                authToggle.textContent = 'Logout';
-                loginForm.classList.add('hidden');
-                document.querySelector('.add-article-btn').classList.remove('hidden');
-                document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.remove('hidden'));
-            } else {
-                alert('Invalid credentials!');
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store the token
+                    localStorage.setItem('token', data.token);
+                    // Update UI
+                    document.getElementById('userStatus').textContent = `Logged in as ${username}`;
+                    document.getElementById('loginForm').classList.add('hidden');
+                    document.querySelector('.add-article-btn').classList.remove('hidden');
+                    document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.remove('hidden'));
+                } else {
+                    alert('Login failed: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed. Please try again.');
             }
-            loginForm.reset();
-        });
+        }
+
+        // Add event listener to form
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
 
         // Fetch articles from backend
         async function fetchArticles() {
