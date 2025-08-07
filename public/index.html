@@ -174,6 +174,10 @@
             outline: none;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             body {
@@ -333,6 +337,10 @@
                 const articleElement = createArticle(article.title, article.content, new Date(article.date));
                 title.insertAdjacentElement('afterend', articleElement);
             });
+
+            // Show/hide admin controls based on login status
+            document.querySelector('.add-article-btn').classList.toggle('hidden', !isAdmin);
+            document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.toggle('hidden', !isAdmin));
         }
 
         // Create article with backend integration
@@ -340,12 +348,14 @@
             const article = document.createElement('div');
             article.className = 'article';
             
-            // Generate unique ID for new articles
             const id = Date.now().toString();
             article.dataset.id = id;
             
+            // Add edit button only if admin
+            const editButton = isAdmin ? `<button class="edit-btn">Edit</button>` : '';
+            
             article.innerHTML = `
-                <button class="edit-btn ${!isAdmin ? 'hidden' : ''}">Edit</button>
+                ${editButton}
                 <h2 class="article-title">${title}</h2>
                 <p class="article-date">${date.toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -355,74 +365,55 @@
                 <p class="content">${content}</p>
             `;
 
-            // Add edit functionality
-            article.querySelector('.edit-btn').addEventListener('click', async function() {
-                if (!isAdmin) return;
-                
-                const newTitle = prompt('Edit title:', article.querySelector('.article-title').textContent);
-                if (!newTitle) return;
+            // Add edit functionality only if admin
+            if (isAdmin) {
+                article.querySelector('.edit-btn').addEventListener('click', async function() {
+                    if (!isAdmin) return;
+                    
+                    const newTitle = prompt('Edit title:', article.querySelector('.article-title').textContent);
+                    if (!newTitle) return;
 
-                const newContent = prompt('Edit content:', article.querySelector('.content').textContent);
-                if (!newContent) return;
+                    const newContent = prompt('Edit content:', article.querySelector('.content').textContent);
+                    if (!newContent) return;
 
-                try {
-                    const response = await fetch(`/api/articles/${article.dataset.id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ title: newTitle, content: newContent })
-                    });
+                    try {
+                        const token = localStorage.getItem('token');
+                        if (!token) {
+                            alert('Please login again');
+                            return;
+                        }
 
-                    if (response.ok) {
-                        article.querySelector('.article-title').textContent = newTitle;
-                        article.querySelector('.content').textContent = newContent;
-                    } else {
-                        alert('Failed to update article');
+                        const response = await fetch(`/api/articles/${article.dataset.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                title: newTitle,
+                                content: newContent
+                            })
+                        });
+
+                        if (response.ok) {
+                            article.querySelector('.article-title').textContent = newTitle;
+                            article.querySelector('.content').textContent = newContent;
+                        } else {
+                            const error = await response.json();
+                            throw new Error(error.message || 'Failed to update article');
+                        }
+                    } catch (error) {
+                        console.error('Failed to update article:', error);
+                        alert(error.message || 'Failed to update article');
                     }
-                } catch (error) {
-                    console.error('Failed to update article:', error);
-                    alert('Failed to update article');
-                }
-            });
+                });
+            }
 
             return article;
         }
 
-        // Modify add button click handler
-        document.querySelector('.add-article-btn').addEventListener('click', async function() {
-            if (!isAdmin) return;
-
-            const title = prompt('Enter article title:');
-            if (!title) return;
-
-            const content = prompt('Enter article content:');
-            if (!content) return;
-
-            try {
-                const response = await fetch('/api/articles', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ title, content })
-                });
-
-                if (response.ok) {
-                    const newArticle = await response.json();
-                    const articleElement = createArticle(newArticle.title, newArticle.content, new Date(newArticle.date));
-                    document.querySelector('.main-title').insertAdjacentElement('afterend', articleElement);
-                } else {
-                    alert('Failed to create article');
-                }
-            } catch (error) {
-                console.error('Failed to create article:', error);
-                alert('Failed to create article');
-            }
-        });
-
-        // Load articles when page loads
-        window.addEventListener('DOMContentLoaded', fetchArticles);
+        // Initial fetch
+        fetchArticles();
     </script>
 </body>
 </html>

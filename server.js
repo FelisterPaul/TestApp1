@@ -140,11 +140,17 @@ app.put('/api/articles/:id', authenticateToken, async (req, res, next) => {
         const { title, content } = req.body;
         const articles = await readArticles();
         const article = articles.find(a => a.id === req.params.id);
+        
         if (!article) {
-            return res.status(404).json({ error: 'Article not found' });
+            return res.status(404).json({ 
+                error: 'Article not found' 
+            });
         }
+
         article.title = title;
         article.content = content;
+        article.updatedAt = new Date().toISOString();
+        
         await writeArticles(articles);
         res.json(article);
     } catch (error) {
