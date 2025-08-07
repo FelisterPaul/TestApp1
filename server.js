@@ -8,26 +8,97 @@ const fs = require('fs').promises;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Ensure data directory exists
+const DATA_DIR = path.join(__dirname, 'data');
+const DATA_FILE = path.join(DATA_DIR, 'articles.json');
+
+// Create data directory if it doesn't exist
+async function ensureDataDir() {
+    try {
+        await fs.access(DATA_DIR);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            await fs.mkdir(DATA_DIR);
+        }
+    }
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// API routes
-app.get('/api/articles', async (req, res) => {
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Articles data file path
+
+// Helper function to read articles
+async function readArticles() {
+    try {
+        const data = await fs.readFile(DATA_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            await fs.writeFile(DATA_FILE, JSON.stringify([]));
+            return [];
+        }
+        throw error;
+    }
+}
+
+// Helper function to write articles
+async function writeArticles(articles) {
+    await fs.writeFile(DATA_FILE, JSON.stringify(articles, null, 2));
+}
+
+// API Routes
+app.get('/api/articles', async (req, res, next) => {
     try {
         const articles = await readArticles();
         res.json(articles);
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.post('/api/articles', async (req, res, next) => {
+    try {
+        const { title, content } = req.body;
+        const articles = await readArticles();
+        const newArticle = {
+            id: Date.now().toString(),
+            title,
+            content,
+            date: new Date().toISOString()
+        };
+        articles.unshift(newArticle);
+        await writeArticles(articles);
+        res.status(201).json(newArticle);
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.put('/api/articles/:id', async (req, res, next) => {
+    try {
+        const { title, content } = req.body;
+        const articles = await readArticles();
+        const article = articles.find(a => a.id === req.params.id);
+        if (!article) {
+            return res.status(404).json({ error: 'Article not found' });
+        }
+        article.title = title;
+        article.content = content;
+        await writeArticles(articles);
+        res.json(article);
     } catch (error) {
         next(error);
     }
@@ -42,7 +113,18 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+// Initialize server
+async function initServer() {
+    try {
+        await ensureDataDir();
+        
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to initialize server:', error);
+        process.exit(1);
+    }
+}
+
+initServer();
