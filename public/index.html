@@ -260,87 +260,168 @@
         const authToggle = document.getElementById('authToggle');
         const userStatus = document.getElementById('userStatus');
 
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add form submission handler
+            loginForm.addEventListener('submit', handleLogin);
+
+            // Check if user was previously logged in
+            const savedUsername = localStorage.getItem('adminUsername');
+            if (savedUsername === ADMIN_CREDENTIALS.username) {
+                isAdmin = true;
+                localStorage.setItem('adminUsername', ADMIN_CREDENTIALS.username); // Store username
+                userStatus.textContent = `Logged in as ${savedUsername}`;
+                authToggle.textContent = 'Logout';
+                document.querySelector('.add-article-btn').classList.remove('hidden');
+                displayArticles([]); // This will add edit buttons to existing articles
+            }
+        });
+
         // Toggle login form
         authToggle.addEventListener('click', () => {
             if (isAdmin) {
                 // Logout
                 isAdmin = false;
+                localStorage.removeItem('adminUsername');
                 userStatus.textContent = 'Guest';
                 authToggle.textContent = 'Login';
                 document.querySelector('.add-article-btn').classList.add('hidden');
-                document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.add('hidden'));
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.remove());
             } else {
                 // Show login form
                 loginForm.classList.toggle('hidden');
             }
         });
 
-        // Add this login function
+        // Update the handleLogin function
         async function handleLogin(event) {
-            event.preventDefault();
+            event.preventDefault(); // Prevent form submission
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, password })
+            if (username === ADMIN_CREDENTIALS.username && 
+                password === ADMIN_CREDENTIALS.password) {
+                isAdmin = true;
+                localStorage.setItem('adminUsername', username); // Store username
+                userStatus.textContent = `Logged in as ${username}`;
+                loginForm.classList.add('hidden');
+                authToggle.textContent = 'Logout';
+                
+                // Show admin controls
+                document.querySelector('.add-article-btn').classList.remove('hidden');
+                const articles = document.querySelectorAll('.article');
+                articles.forEach(article => {
+                    if (!article.querySelector('.edit-btn')) {
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'edit-btn';
+                        editBtn.textContent = 'Edit';
+                        article.insertBefore(editBtn, article.firstChild);
+                        addEditFunctionality(article, editBtn);
+                    }
                 });
 
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Store the token
-                    localStorage.setItem('token', data.token);
-                    // Update UI
-                    document.getElementById('userStatus').textContent = `Logged in as ${username}`;
-                    document.getElementById('loginForm').classList.add('hidden');
-                    document.querySelector('.add-article-btn').classList.remove('hidden');
-                    document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.remove('hidden'));
-                } else {
-                    alert('Login failed: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Login failed. Please try again.');
+                // Clear form
+                loginForm.reset();
+                return;
             }
+
+            alert('Invalid credentials! Use username: Hellena, password: admin123');
         }
 
-        // Add event listener to form
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        // Add this new function for edit functionality
+        function addEditFunctionality(article, editBtn) {
+            editBtn.addEventListener('click', async function() {
+                if (!isAdmin) return;
+                
+                const newTitle = prompt('Edit title:', article.querySelector('.article-title').textContent);
+                if (!newTitle) return;
+
+                const newContent = prompt('Edit content:', article.querySelector('.content').textContent);
+                if (!newContent) return;
+
+                article.querySelector('.article-title').textContent = newTitle;
+                article.querySelector('.content').textContent = newContent;
+            });
+        }
+
+        // Update the add article button functionality
+        document.querySelector('.add-article-btn').addEventListener('click', function() {
+            if (!isAdmin) {
+                alert('Please login as admin to add articles');
+                return;
+            }
+
+            const title = prompt('Enter article title:');
+            if (!title) return;
+
+            const content = prompt('Enter article content:');
+            if (!content) return;
+
+            const article = createArticle(title, content, new Date());
+            document.querySelector('.main-title').insertAdjacentElement('afterend', article);
+        });
 
         // Fetch articles from backend
         async function fetchArticles() {
             try {
                 const response = await fetch('/api/articles');
+                if (!response.ok) {
+                    console.log('No backend articles available');
+                    displayArticles([]); // Display static articles only
+                    return;
+                }
                 const articles = await response.json();
                 displayArticles(articles);
             } catch (error) {
                 console.error('Failed to fetch articles:', error);
+                displayArticles([]); // Display static articles only
             }
         }
 
-        // Display articles
+        // Modify the displayArticles function
         function displayArticles(articles) {
             const container = document.querySelector('.container');
             const title = container.querySelector('.main-title');
             
-            // Clear existing articles
-            Array.from(container.querySelectorAll('.article')).forEach(article => article.remove());
+            // Get static articles
+            const staticArticles = Array.from(container.querySelectorAll('.article'));
             
-            // Add new articles
-            articles.forEach(article => {
-                const articleElement = createArticle(article.title, article.content, new Date(article.date));
-                title.insertAdjacentElement('afterend', articleElement);
+            // Add fetched articles
+            if (articles && articles.length > 0) {
+                articles.forEach(article => {
+                    const articleElement = createArticle(article.title, article.content, new Date(article.date));
+                    title.insertAdjacentElement('afterend', articleElement);
+                });
+            }
+
+            // Add edit buttons to static articles if admin
+            staticArticles.forEach(article => {
+                if (isAdmin && !article.querySelector('.edit-btn')) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'edit-btn';
+                    editBtn.textContent = 'Edit';
+                    article.insertBefore(editBtn, article.firstChild);
+
+                    editBtn.addEventListener('click', async function() {
+                        if (!isAdmin) return;
+                        
+                        const newTitle = prompt('Edit title:', article.querySelector('.article-title').textContent);
+                        if (!newTitle) return;
+
+                        const newContent = prompt('Edit content:', article.querySelector('.content').textContent);
+                        if (!newContent) return;
+
+                        article.querySelector('.article-title').textContent = newTitle;
+                        article.querySelector('.content').textContent = newContent;
+                    });
+                }
             });
 
-            // Show/hide admin controls based on login status
+            // Show/hide admin controls
             document.querySelector('.add-article-btn').classList.toggle('hidden', !isAdmin);
-            document.querySelectorAll('.edit-btn').forEach(btn => btn.classList.toggle('hidden', !isAdmin));
+            document.querySelectorAll('.edit-btn').forEach(btn => 
+                btn.classList.toggle('hidden', !isAdmin)
+            );
         }
 
         // Create article with backend integration
