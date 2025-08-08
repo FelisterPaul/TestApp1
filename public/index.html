@@ -344,8 +344,7 @@
             });
         }
 
-        // Replace the createArticle function and add article button functionality with:
-
+        // Replace both createArticle functions with this single version
         function createArticle(title, content, date) {
             const article = document.createElement('div');
             article.className = 'article';
@@ -375,32 +374,29 @@
             return article;
         }
 
-        // Update add article button functionality
-        document.querySelector('.add-article-btn').addEventListener('click', function() {
+        // Update the add article button functionality
+        document.querySelector('.add-article-btn').addEventListener('click', async function() {
             if (!isAdmin) {
                 alert('Please login as admin to add articles');
                 return;
             }
 
-            const title = prompt('Enter article title:');
-            if (!title) return;
-
-            const content = prompt('Enter article content:');
-            if (!content) return;
-
             try {
+                const title = prompt('Enter article title:');
+                if (!title) return;
+
+                const content = prompt('Enter article content:');
+                if (!content) return;
+
                 // Create new article
                 const newArticle = createArticle(title, content, new Date());
                 
-                // Insert at the top of the container
+                // Insert at the top of the container, after the title
                 const container = document.querySelector('.container');
-                const firstArticle = container.querySelector('.article');
-                
-                // Insert after the main title
                 const mainTitle = container.querySelector('.main-title');
-                container.insertBefore(newArticle, firstArticle);
+                container.insertBefore(newArticle, mainTitle.nextSibling);
 
-                // Save to localStorage for persistence
+                // Save to localStorage
                 const articles = JSON.parse(localStorage.getItem('articles') || '[]');
                 articles.unshift({
                     id: newArticle.dataset.id,
@@ -410,9 +406,7 @@
                 });
                 localStorage.setItem('articles', JSON.stringify(articles));
 
-                // Show success message
                 alert('Article added successfully!');
-
             } catch (error) {
                 console.error('Failed to add article:', error);
                 alert('Failed to add article. Please try again.');
@@ -480,75 +474,6 @@
             document.querySelectorAll('.edit-btn').forEach(btn => 
                 btn.classList.toggle('hidden', !isAdmin)
             );
-        }
-
-        // Create article with backend integration
-        async function createArticle(title, content, date) {
-            const article = document.createElement('div');
-            article.className = 'article';
-            
-            const id = Date.now().toString();
-            article.dataset.id = id;
-            
-            // Add edit button only if admin
-            const editButton = isAdmin ? `<button class="edit-btn">Edit</button>` : '';
-            
-            article.innerHTML = `
-                ${editButton}
-                <h2 class="article-title">${title}</h2>
-                <p class="article-date">${date.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                })}</p>
-                <p class="content">${content}</p>
-            `;
-
-            // Add edit functionality only if admin
-            if (isAdmin) {
-                article.querySelector('.edit-btn').addEventListener('click', async function() {
-                    if (!isAdmin) return;
-                    
-                    const newTitle = prompt('Edit title:', article.querySelector('.article-title').textContent);
-                    if (!newTitle) return;
-
-                    const newContent = prompt('Edit content:', article.querySelector('.content').textContent);
-                    if (!newContent) return;
-
-                    try {
-                        const token = localStorage.getItem('token');
-                        if (!token) {
-                            alert('Please login again');
-                            return;
-                        }
-
-                        const response = await fetch(`/api/articles/${article.dataset.id}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                title: newTitle,
-                                content: newContent
-                            })
-                        });
-
-                        if (response.ok) {
-                            article.querySelector('.article-title').textContent = newTitle;
-                            article.querySelector('.content').textContent = newContent;
-                        } else {
-                            const error = await response.json();
-                            throw new Error(error.message || 'Failed to update article');
-                        }
-                    } catch (error) {
-                        console.error('Failed to update article:', error);
-                        alert(error.message || 'Failed to update article');
-                    }
-                });
-            }
-
-            return article;
         }
 
         // Initial fetch
