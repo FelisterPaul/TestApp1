@@ -344,7 +344,7 @@
             });
         }
 
-        // Replace the add article button functionality and createArticle function with:
+        // Replace the createArticle function and add article button functionality with:
 
         function createArticle(title, content, date) {
             const article = document.createElement('div');
@@ -353,8 +353,11 @@
             const id = Date.now().toString();
             article.dataset.id = id;
             
+            // Add edit button only if admin
+            const editButton = isAdmin ? `<button class="edit-btn">Edit</button>` : '';
+            
             article.innerHTML = `
-                ${isAdmin ? '<button class="edit-btn">Edit</button>' : ''}
+                ${editButton}
                 <h2 class="article-title">${title}</h2>
                 <p class="article-date">${date.toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -373,7 +376,7 @@
         }
 
         // Update add article button functionality
-        document.querySelector('.add-article-btn').addEventListener('click', async function() {
+        document.querySelector('.add-article-btn').addEventListener('click', function() {
             if (!isAdmin) {
                 alert('Please login as admin to add articles');
                 return;
@@ -392,11 +395,10 @@
                 // Insert at the top of the container
                 const container = document.querySelector('.container');
                 const firstArticle = container.querySelector('.article');
-                if (firstArticle) {
-                    container.insertBefore(newArticle, firstArticle);
-                } else {
-                    container.appendChild(newArticle);
-                }
+                
+                // Insert after the main title
+                const mainTitle = container.querySelector('.main-title');
+                container.insertBefore(newArticle, firstArticle);
 
                 // Save to localStorage for persistence
                 const articles = JSON.parse(localStorage.getItem('articles') || '[]');
@@ -407,6 +409,9 @@
                     date: new Date().toISOString()
                 });
                 localStorage.setItem('articles', JSON.stringify(articles));
+
+                // Show success message
+                alert('Article added successfully!');
 
             } catch (error) {
                 console.error('Failed to add article:', error);
