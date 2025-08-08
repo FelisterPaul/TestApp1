@@ -344,38 +344,8 @@
             });
         }
 
-        // Update the add article button functionality
-        document.querySelector('.add-article-btn').addEventListener('click', function() {
-            if (!isAdmin) {
-                alert('Please login as admin to add articles');
-                return;
-            }
+        // Replace the add article button functionality and createArticle function with:
 
-            const title = prompt('Enter article title:');
-            if (!title) return;
-
-            const content = prompt('Enter article content:');
-            if (!content) return;
-
-            // Create and display the new article immediately
-            const newArticle = createArticle(title, content, new Date());
-            const container = document.querySelector('.container');
-            const firstArticle = container.querySelector('.article');
-            
-            // Insert the new article at the top
-            if (firstArticle) {
-                container.insertBefore(newArticle, firstArticle);
-            } else {
-                container.appendChild(newArticle);
-            }
-
-            // Add edit functionality to the new article
-            if (isAdmin && newArticle.querySelector('.edit-btn')) {
-                addEditFunctionality(newArticle, newArticle.querySelector('.edit-btn'));
-            }
-        });
-
-        // Update createArticle function
         function createArticle(title, content, date) {
             const article = document.createElement('div');
             article.className = 'article';
@@ -394,8 +364,55 @@
                 <p class="content">${content}</p>
             `;
 
+            // Add edit functionality if admin
+            if (isAdmin && article.querySelector('.edit-btn')) {
+                addEditFunctionality(article, article.querySelector('.edit-btn'));
+            }
+
             return article;
         }
+
+        // Update add article button functionality
+        document.querySelector('.add-article-btn').addEventListener('click', async function() {
+            if (!isAdmin) {
+                alert('Please login as admin to add articles');
+                return;
+            }
+
+            const title = prompt('Enter article title:');
+            if (!title) return;
+
+            const content = prompt('Enter article content:');
+            if (!content) return;
+
+            try {
+                // Create new article
+                const newArticle = createArticle(title, content, new Date());
+                
+                // Insert at the top of the container
+                const container = document.querySelector('.container');
+                const firstArticle = container.querySelector('.article');
+                if (firstArticle) {
+                    container.insertBefore(newArticle, firstArticle);
+                } else {
+                    container.appendChild(newArticle);
+                }
+
+                // Save to localStorage for persistence
+                const articles = JSON.parse(localStorage.getItem('articles') || '[]');
+                articles.unshift({
+                    id: newArticle.dataset.id,
+                    title,
+                    content,
+                    date: new Date().toISOString()
+                });
+                localStorage.setItem('articles', JSON.stringify(articles));
+
+            } catch (error) {
+                console.error('Failed to add article:', error);
+                alert('Failed to add article. Please try again.');
+            }
+        });
 
         // Fetch articles from backend
         async function fetchArticles() {
